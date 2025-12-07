@@ -1,0 +1,224 @@
+<!DOCTYPE html>
+<html lang="sr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>KAAN App</title>
+<style>
+body { font-family: Arial, sans-serif; margin:0; padding:0; }
+nav { display: flex; background: #2c3e50; }
+nav button { flex:1; padding:10px; color:#fff; background:#34495e; border:none; cursor:pointer; }
+nav button.active { background:#16a085; }
+.screen { display:none; padding:10px; overflow-x:auto; }
+.screen table { border-collapse: collapse; width: 100%; }
+.screen table, .screen th, .screen td { border: 1px solid #444; }
+th, td { padding:5px; text-align:center; min-width:50px; }
+input { width: 100%; box-sizing: border-box; border:none; }
+input:focus { outline: 1px solid #16a085; }
+button.action { margin:5px 0; padding:5px 10px; cursor:pointer; }
+.row-btn { margin-left:5px; cursor:pointer; color:red; }
+</style>
+</head>
+<body>
+
+<nav>
+  <button class="tab-btn active" data-target="screen1">Rezultati</button>
+  <button class="tab-btn" data-target="screen2">Statistika</button>
+  <button class="tab-btn" data-target="screen3">Budući mečevi</button>
+  <button class="tab-btn" data-target="screen4">Verovatnoća</button>
+  <button class="tab-btn" data-target="screen5">TOP 50</button>
+</nav>
+
+<!-- Screens -->
+
+<div id="screen1" class="screen" style="display:block;">
+  <h2>Rezultati zavrsenih mečeva</h2>
+  <button class="action" onclick="addResultRow()">Dodaj red</button>
+  <button class="action" onclick="clearTable('resultsTable')">Obriši sve</button>
+  <table id="resultsTable">
+    <thead>
+      <tr>
+        <th>Domacin</th><th>Gost</th><th>Ukupan rezultat</th><th>2H</th><th>1H</th><th>Obriši</th>
+      </tr>
+    </thead>
+    <tbody></tbody>
+  </table>
+</div>
+
+<div id="screen2" class="screen">
+  <h2>Statistika</h2>
+  <button class="action" onclick="updateStats()">Osveži statistiku</button>
+  <button class="action" onclick="clearTable('statsTable')">Obriši sve</button>
+  <table id="statsTable">
+    <thead>
+      <tr>
+        <th>Tim</th><th>Odigrano</th><th>Golovi dati</th><th>Golovi primljeni</th>
+        <th>GG</th><th>2+</th><th>%GG</th><th>%2+</th><th>NG</th><th>%NG</th>
+      </tr>
+    </thead>
+    <tbody></tbody>
+  </table>
+</div>
+
+<div id="screen3" class="screen">
+  <h2>Unos budućih mečeva</h2>
+  <button class="action" onclick="addFutureRow()">Dodaj red</button>
+  <button class="action" onclick="clearTable('futureTable')">Obriši sve</button>
+  <table id="futureTable">
+    <thead>
+      <tr><th>Domacin</th><th>Gost</th><th>Obriši</th></tr>
+    </thead>
+    <tbody></tbody>
+  </table>
+</div>
+
+<div id="screen4" class="screen">
+  <h2>Verovatnoća ishoda</h2>
+  <button class="action" onclick="updatePredictions()">Izračunaj verovatnoću</button>
+  <button class="action" onclick="clearTable('predictionTable')">Obriši sve</button>
+  <table id="predictionTable">
+    <thead>
+      <tr><th>Domacin</th><th>Gost</th><th>GG %</th><th>NG %</th><th>2+ %</th></tr>
+    </thead>
+    <tbody></tbody>
+  </table>
+</div>
+
+<div id="screen5" class="screen">
+  <h2>TOP 50 mečeva</h2>
+  <button class="action" onclick="updateTop50()">Generiši TOP 50</button>
+  <button class="action" onclick="clearTable('top50Table')">Obriši sve</button>
+  <table id="top50Table">
+    <thead>
+      <tr><th>Domacin</th><th>Gost</th><th>GG %</th><th>NG %</th><th>2+ %</th></tr>
+    </thead>
+    <tbody></tbody>
+  </table>
+</div>
+
+<script>
+// Tab navigation
+const tabs = document.querySelectorAll('.tab-btn');
+const screens = document.querySelectorAll('.screen');
+tabs.forEach(tab => {
+  tab.addEventListener('click', () => {
+    tabs.forEach(t => t.classList.remove('active'));
+    tab.classList.add('active');
+    const target = tab.dataset.target;
+    screens.forEach(screen => screen.style.display = (screen.id === target) ? 'block' : 'none');
+  });
+});
+
+// Dodavanje redova sa Excel-like input
+function addResultRow() {
+  addRow('resultsTable', 5);
+}
+function addFutureRow() {
+  addRow('futureTable', 2);
+}
+
+function addRow(tableId, cols) {
+  const tbody = document.getElementById(tableId).querySelector('tbody');
+  const row = document.createElement('tr');
+  for(let i=0;i<cols;i++){
+    const td=document.createElement('td');
+    const input=document.createElement('input');
+    input.type='text';
+    td.appendChild(input);
+    row.appendChild(td);
+  }
+  // Dugme za brisanje reda
+  const delTd=document.createElement('td');
+  const delBtn=document.createElement('span');
+  delBtn.innerText='X';
+  delBtn.className='row-btn';
+  delBtn.onclick=()=>row.remove();
+  delTd.appendChild(delBtn);
+  row.appendChild(delTd);
+
+  tbody.appendChild(row);
+}
+
+// Brisanje cele tabele
+function clearTable(tableId){
+  const tbody=document.getElementById(tableId).querySelector('tbody');
+  tbody.innerHTML='';
+}
+
+// Statistika iz Screen1
+function updateStats(){
+  const results = Array.from(document.querySelectorAll('#resultsTable tbody tr'));
+  const statsMap = {};
+  results.forEach(r=>{
+    const dom=r.querySelector('td:nth-child(1) input').value.trim();
+    const gost=r.querySelector('td:nth-child(2) input').value.trim();
+    const total=r.querySelector('td:nth-child(3) input').value.trim();
+    const [g1,g2]=total.split('-').map(x=>parseInt(x)||0);
+    [[dom,g1,g2],[gost,g2,g1]].forEach(([team,scored,conceded])=>{
+      if(!statsMap[team]) statsMap[team]={played:0,scored:0,conceded:0,GG:0,twoPlus:0,NG:0};
+      const s=statsMap[team];
+      s.played++;
+      s.scored+=scored;
+      s.conceded+=conceded;
+      if(scored>0 && conceded>0) s.GG++;
+      if(scored+conceded>=2) s.twoPlus++;
+      if(scored==0 || conceded==0) s.NG++;
+    });
+  });
+  const tbody=document.getElementById('statsTable').querySelector('tbody');
+  tbody.innerHTML='';
+  Object.entries(statsMap).forEach(([team,s])=>{
+    const row=document.createElement('tr');
+    const ggPct = s.played ? Math.round(100*s.GG/s.played) : 0;
+    const twoPct = s.played ? Math.round(100*s.twoPlus/s.played) : 0;
+    const ngPct = s.played ? Math.round(100*s.NG/s.played) : 0;
+    row.innerHTML=`<td>${team}</td><td>${s.played}</td><td>${s.scored}</td><td>${s.conceded}</td>
+                   <td>${s.GG}</td><td>${s.twoPlus}</td><td>${ggPct}%</td><td>${twoPct}%</td><td>${s.NG}</td><td>${ngPct}%</td>`;
+    tbody.appendChild(row);
+  });
+}
+
+// Predikcija Screen4
+function updatePredictions(){
+  const future=Array.from(document.querySelectorAll('#futureTable tbody tr'));
+  const stats={};
+  Array.from(document.querySelectorAll('#statsTable tbody tr')).forEach(r=>{
+    const name=r.cells[0].innerText.trim();
+    stats[name]={gg:parseInt(r.cells[6]), two:parseInt(r.cells[7]), ng:parseInt(r.cells[9])};
+  });
+  const tbody=document.getElementById('predictionTable').querySelector('tbody');
+  tbody.innerHTML='';
+  future.forEach(r=>{
+    const dom=r.querySelector('td:nth-child(1) input').value.trim();
+    const gost=r.querySelector('td:nth-child(2) input').value.trim();
+    const domStats = stats[dom]||{gg:0,two:0,ng:0};
+    const gostStats = stats[gost]||{gg:0,two:0,ng:0};
+    const ggPct=Math.round((domStats.gg+gostStats.gg)/2);
+    const twoPct=Math.round((domStats.two+gostStats.two)/2);
+    const ngPct=Math.round((domStats.ng+gostStats.ng)/2);
+    const row=document.createElement('tr');
+    row.innerHTML=`<td>${dom}</td><td>${gost}</td><td>${ggPct}%</td><td>${ngPct}%</td><td>${twoPct}%</td>`;
+    tbody.appendChild(row);
+  });
+}
+
+// TOP50 Screen5
+function updateTop50(){
+  const predictions=Array.from(document.querySelectorAll('#predictionTable tbody tr'));
+  const sorted=predictions.sort((a,b)=>{
+    const maxA=Math.max(parseInt(a.cells[2].innerText),parseInt(a.cells[3].innerText),parseInt(a.cells[4].innerText));
+    const maxB=Math.max(parseInt(b.cells[2].innerText),parseInt(b.cells[3].innerText),parseInt(b.cells[4].innerText));
+    return maxB-maxA;
+  }).slice(0,50);
+  const tbody=document.getElementById('top50Table').querySelector('tbody');
+  tbody.innerHTML='';
+  sorted.forEach(r=>{
+    const row=document.createElement('tr');
+    row.innerHTML=`<td>${r.cells[0].innerText}</td><td>${r.cells[1].innerText}</td>
+                   <td>${r.cells[2].innerText}</td><td>${r.cells[3].innerText}</td><td>${r.cells[4].innerText}</td>`;
+    tbody.appendChild(row);
+  });
+}
+</script>
+</body>
+</html>
