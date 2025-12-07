@@ -133,11 +133,10 @@ function deleteFutureRow(row){
 // ---------- Trajno čuvanje ----------
 function saveResultRow(domacin, gost, total, twoH, oneH){
     db.transaction(tx=>{
-        tx.executeSql("DELETE FROM rezultati WHERE domacin=? AND gost=? AND total=?",
-            [domacin, gost, total], ()=>{
-                tx.executeSql("INSERT INTO rezultati (domacin,gost,total,twoH,oneH) VALUES (?,?,?,?,?)",
-                    [domacin,gost,total,twoH,oneH]);
-            }
+        tx.executeSql("INSERT OR REPLACE INTO rezultati (id, domacin, gost, total, twoH, oneH) VALUES ((SELECT id FROM rezultati WHERE domacin=? AND gost=? AND total=?), ?, ?, ?, ?, ?)",
+            [domacin, gost, total, domacin, gost, total, twoH, oneH]);
+    });
+}
         );
     });
 }
