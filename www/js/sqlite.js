@@ -132,17 +132,49 @@ function deleteFutureRow(row){
 
 // ---------- Trajno čuvanje ----------
 function saveResultRow(domacin, gost, total, twoH, oneH){
-    db.transaction(tx => {
-        tx.executeSql("SELECT id FROM rezultati WHERE domacin=? AND gost=? AND total=?",
-            [domacin, gost, total], (tx, res) => {
-                if(res.rows.length > 0){
-                    const id = res.rows.item(0).id;
-                    tx.executeSql("UPDATE rezultati SET domacin=?, gost=?, total=?, twoH=?, oneH=? WHERE id=?",
-                        [domacin, gost, total, twoH, oneH, id]);
-                } else {
-                    tx.executeSql("INSERT INTO rezultati (domacin, gost, total, twoH, oneH) VALUES (?,?,?,?,?)",
-                        [domacin, gost, total, twoH, oneH]);
-                }
+    db.transaction(tx=>{
+        tx.executeSql("SELECT id FROM rezultati WHERE domacin=? AND gost=? AND total=?", [domacin, gost, total], (tx, res)=>{
+            if(res.rows.length > 0){
+                const id = res.rows.item(0).id;
+                tx.executeSql("UPDATE rezultati SET domacin=?, gost=?, total=?, twoH=?, oneH=? WHERE id=?", [domacin, gost, total, twoH, oneH, id]);
+            } else {
+                tx.executeSql("INSERT INTO rezultati (domacin, gost, total, twoH, oneH) VALUES (?,?,?,?,?)", [domacin, gost, total, twoH, oneH]);
+            }
+        });
+    });
+}
+
+function addRowFromData(tableId, values){
+    const tbody=document.getElementById(tableId).querySelector("tbody");
+    const row=document.createElement("tr");
+    values.forEach(val=>{
+        const td=document.createElement("td");
+        const input=document.createElement("input");
+        input.value=val;
+        td.appendChild(input);
+        row.appendChild(td);
+    });
+    const delTd=document.createElement("td");
+    const delBtn=document.createElement("span");
+    delBtn.innerText="X";
+    delBtn.className="row-btn";
+    delBtn.onclick=()=>{
+        if(tableId==="resultsTable") deleteResultRow(row);
+        row.remove();
+    };
+    delTd.appendChild(delBtn);
+    row.appendChild(delTd);
+    tbody.appendChild(row);
+    if(tableId==="resultsTable"){
+        const inputs=row.querySelectorAll("input");
+        saveResultRow(inputs[0].value, inputs[1].value, inputs[2].value, inputs[3].value, inputs[4].value);
+        inputs.forEach(input=>{
+            input.addEventListener("change",()=>{
+                saveResultRow(inputs[0].value, inputs[1].value, inputs[2].value, inputs[3].value, inputs[4].value);
+            });
+        });
+    }
+}
             }
         );
     });
