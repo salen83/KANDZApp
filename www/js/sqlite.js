@@ -132,32 +132,21 @@ function deleteFutureRow(row){
 
 // ---------- Trajno čuvanje ----------
 function saveResultRow(domacin, gost, total, twoH, oneH){
-    db.transaction(tx=>{
-        tx.executeSql("INSERT OR REPLACE INTO rezultati (id, domacin, gost, total, twoH, oneH) VALUES ((SELECT id FROM rezultati WHERE domacin=? AND gost=? AND total=?), ?, ?, ?, ?, ?)",
-            [domacin, gost, total, domacin, gost, total, twoH, oneH]);
-    });
-}
+    db.transaction(tx => {
+        tx.executeSql("SELECT id FROM rezultati WHERE domacin=? AND gost=? AND total=?",
+            [domacin, gost, total], (tx, res) => {
+                if(res.rows.length > 0){
+                    const id = res.rows.item(0).id;
+                    tx.executeSql("UPDATE rezultati SET domacin=?, gost=?, total=?, twoH=?, oneH=? WHERE id=?",
+                        [domacin, gost, total, twoH, oneH, id]);
+                } else {
+                    tx.executeSql("INSERT INTO rezultati (domacin, gost, total, twoH, oneH) VALUES (?,?,?,?,?)",
+                        [domacin, gost, total, twoH, oneH]);
+                }
+            }
         );
     });
 }
-}
-
-function saveFutureRow(domacin,gost){
-    db.transaction(tx=>{
-        tx.executeSql('INSERT INTO future (domacin,gost) VALUES (?,?)',[domacin,gost]);
-    });
-}
-
-// ---------- Predikcija (Screen4) ----------
-function updatePredictions(){
-    const future=Array.from(document.querySelectorAll('#futureTable tbody tr'));
-    const stats={};
-
-    db.transaction(tx=>{
-        tx.executeSql('SELECT * FROM statistika',[],(tx,res)=>{
-            for(let i=0;i<res.rows.length;i++){
-                const r=res.rows.item(i);
-                stats[r.tim]={gg:r.pctGG, two:r.pct2Plus, ng:r.pctNG};
             }
 
             const tbody=document.getElementById('predictionTable').querySelector('tbody');
