@@ -9,9 +9,11 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
-    - uses: actions/checkout@v4
+    - name: Checkout
+      uses: actions/checkout@v4
 
-    - uses: actions/setup-node@v4
+    - name: Setup Node
+      uses: actions/setup-node@v4
       with:
         node-version: 20
 
@@ -21,10 +23,14 @@ jobs:
     - name: Install dependencies
       run: npm install
 
-    - name: Build Android APK
+    - name: Add Android platform (if not exists)
       run: |
-        cordova platform add android
-        cordova build android
+        if [ ! -d "platforms/android" ]; then
+          cordova platform add android
+        fi
+
+    - name: Build Android APK
+      run: cordova build android
 
     - name: Upload APK
       uses: actions/upload-artifact@v4
